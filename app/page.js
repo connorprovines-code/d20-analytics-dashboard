@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getSignupMetrics, getCampaignMetrics, getOverviewStats, getUserActivityMetrics } from '../lib/metrics';
+import { getSignupMetrics, getCampaignMetrics, getOverviewStats, getUserActivityMetrics, getDailyActiveUsers, getDAUToday } from '../lib/metrics';
 import SignupChart from '../components/SignupChart';
 import CampaignChart from '../components/CampaignChart';
+import DailyActiveUsersChart from '../components/DailyActiveUsersChart';
 import StatCard from '../components/StatCard';
 
 // Helper function to fill in missing days with zero counts
@@ -29,11 +30,13 @@ export default function Dashboard() {
   const [signupData, setSignupData] = useState([]);
   const [campaignData, setCampaignData] = useState([]);
   const [activityData, setActivityData] = useState([]);
+  const [dauData, setDauData] = useState([]);
   const [stats, setStats] = useState({
     total_users: 0,
     total_campaigns: 0,
     active_campaigns_7d: 0,
-    new_users_7d: 0
+    new_users_7d: 0,
+    dau_today: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -43,23 +46,28 @@ export default function Dashboard() {
     async function fetchData() {
       try {
         setLoading(true);
-        const [signups, campaigns, activity, overview] = await Promise.all([
+        const [signups, campaigns, activity, dau, overview, dauToday] = await Promise.all([
           getSignupMetrics(dateRange),
           getCampaignMetrics(dateRange),
           getUserActivityMetrics(dateRange),
-          getOverviewStats()
+          getDailyActiveUsers(dateRange),
+          getOverviewStats(),
+          getDAUToday()
         ]);
 
         // Fill in missing days with zero counts
         const filledSignups = fillMissingDays(signups, dateRange);
         const filledCampaigns = fillMissingDays(campaigns, dateRange);
         const filledActivity = fillMissingDays(activity, dateRange);
+        const filledDAU = fillMissingDays(dau, dateRange);
 
         setSignupData(filledSignups);
         setCampaignData(filledCampaigns);
         setActivityData(filledActivity);
+        setDauData(filledDAU);
         setStats({
           ...overview,
+          dau_today: dauToday,
           // Calculate totals for the selected date range
           signups_in_range: filledSignups.reduce((sum, item) => sum + item.count, 0),
           campaigns_in_range: filledCampaigns.reduce((sum, item) => sum + item.count, 0)
@@ -144,11 +152,17 @@ export default function Dashboard() {
           value={stats.active_campaigns_7d}
           subtitle="With recent activity"
         />
+        <StatCard
+          title="Daily Active Users"
+          value={stats.dau_today}
+          subtitle="Active today"
+        />
       </div>
 
       <div className="charts-grid">
         <SignupChart data={signupData} />
         <CampaignChart data={campaignData} />
+        <DailyActiveUsersChart data={dauData} />
       </div>
 
       <footer>

@@ -6,6 +6,10 @@ import SignupChart from '../components/SignupChart';
 import CampaignChart from '../components/CampaignChart';
 import StatCard from '../components/StatCard';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function Dashboard() {
   const [signupData, setSignupData] = useState([]);
   const [campaignData, setCampaignData] = useState([]);

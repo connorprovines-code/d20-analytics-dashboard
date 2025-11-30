@@ -51,10 +51,19 @@ export default function Dashboard() {
         ]);
 
         // Fill in missing days with zero counts
-        setSignupData(fillMissingDays(signups, dateRange));
-        setCampaignData(fillMissingDays(campaigns, dateRange));
-        setActivityData(fillMissingDays(activity, dateRange));
-        setStats(overview);
+        const filledSignups = fillMissingDays(signups, dateRange);
+        const filledCampaigns = fillMissingDays(campaigns, dateRange);
+        const filledActivity = fillMissingDays(activity, dateRange);
+
+        setSignupData(filledSignups);
+        setCampaignData(filledCampaigns);
+        setActivityData(filledActivity);
+        setStats({
+          ...overview,
+          // Calculate totals for the selected date range
+          signups_in_range: filledSignups.reduce((sum, item) => sum + item.count, 0),
+          campaigns_in_range: filledCampaigns.reduce((sum, item) => sum + item.count, 0)
+        });
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError(err.message);
@@ -111,14 +120,24 @@ export default function Dashboard() {
           subtitle="All-time signups"
         />
         <StatCard
-          title="New Users (7d)"
-          value={stats.new_users_7d}
-          subtitle="Last 7 days"
+          title={`Signups (${dateRange}d)`}
+          value={stats.signups_in_range || 0}
+          subtitle="In selected range"
         />
         <StatCard
           title="Total Campaigns"
           value={stats.total_campaigns}
           subtitle="All-time"
+        />
+        <StatCard
+          title={`Campaigns (${dateRange}d)`}
+          value={stats.campaigns_in_range || 0}
+          subtitle="In selected range"
+        />
+        <StatCard
+          title="New Users (7d)"
+          value={stats.new_users_7d}
+          subtitle="Last 7 days"
         />
         <StatCard
           title="Active Campaigns (7d)"

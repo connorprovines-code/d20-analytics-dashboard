@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 export default function SignupChart({ data }) {
   return (
     <div className="chart-container">
-      <h2>Daily Signups</h2>
+      <h2>New User Signups (Daily)</h2>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />

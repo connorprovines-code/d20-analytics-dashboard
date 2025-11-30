@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 export default function CampaignChart({ data }) {
   return (
     <div className="chart-container">
-      <h2>Campaign Activity</h2>
+      <h2>Campaign Creations (Daily)</h2>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />

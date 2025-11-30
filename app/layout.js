@@ -46,6 +46,39 @@ export default function RootLayout({ children }) {
           .subtitle {
             color: #666;
             font-size: 1rem;
+            margin-bottom: 1rem;
+          }
+
+          .date-range-selector {
+            margin-top: 1rem;
+          }
+
+          .date-range-selector label {
+            font-weight: 600;
+            color: #333;
+            margin-right: 0.5rem;
+          }
+
+          .date-range-selector select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+
+          .date-range-selector select:hover {
+            border-color: #764ba2;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+          }
+
+          .date-range-selector select:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
           }
 
           .stats-grid {

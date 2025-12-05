@@ -142,6 +142,132 @@ END;
 $$;
 
 -- =====================================================
+-- 5. Get Daily Active Users (DAU)
+-- =====================================================
+-- Returns daily count of unique active users
+-- A user is considered "active" if they:
+--   1. Signed up that day, OR
+--   2. Created a campaign that day, OR
+--   3. Updated a campaign they own that day, OR
+--   4. Joined a campaign that day
+-- This ensures DAU >= daily signups (since new users who create campaigns count as active)
+CREATE OR REPLACE FUNCTION get_daily_active_users(days_back INTEGER DEFAULT 30)
+RETURNS TABLE (
+  date TEXT,
+  count BIGINT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH active_users AS (
+    -- Users who signed up
+    SELECT
+      DATE_TRUNC('day', created_at) as activity_date,
+      id as user_id
+    FROM auth.users
+    WHERE created_at >= NOW() - (days_back || ' days')::INTERVAL
+      AND NOT (email ILIKE '%connor%' AND email ILIKE '%provines%')
+
+    UNION
+
+    -- Users who created campaigns
+    SELECT
+      DATE_TRUNC('day', c.created_at) as activity_date,
+      c.owner_id as user_id
+    FROM campaigns c
+    INNER JOIN auth.users u ON c.owner_id = u.id
+    WHERE c.created_at >= NOW() - (days_back || ' days')::INTERVAL
+      AND NOT (u.email ILIKE '%connor%' AND u.email ILIKE '%provines%')
+
+    UNION
+
+    -- Users who updated campaigns (if campaigns have updated_at tracking)
+    SELECT
+      DATE_TRUNC('day', c.updated_at) as activity_date,
+      c.owner_id as user_id
+    FROM campaigns c
+    INNER JOIN auth.users u ON c.owner_id = u.id
+    WHERE c.updated_at >= NOW() - (days_back || ' days')::INTERVAL
+      AND c.updated_at != c.created_at  -- Exclude initial creation
+      AND NOT (u.email ILIKE '%connor%' AND u.email ILIKE '%provines%')
+
+    UNION
+
+    -- Users who joined campaigns
+    SELECT
+      DATE_TRUNC('day', cm.joined_at) as activity_date,
+      cm.user_id as user_id
+    FROM campaign_members cm
+    INNER JOIN auth.users u ON cm.user_id = u.id
+    WHERE cm.joined_at >= NOW() - (days_back || ' days')::INTERVAL
+      AND NOT (u.email ILIKE '%connor%' AND u.email ILIKE '%provines%')
+  )
+  SELECT
+    TO_CHAR(activity_date, 'YYYY-MM-DD') as date,
+    COUNT(DISTINCT user_id)::BIGINT as count
+  FROM active_users
+  GROUP BY activity_date
+  ORDER BY activity_date ASC;
+END;
+$$;
+
+-- =====================================================
+-- 6. Get DAU for Today
+-- =====================================================
+-- Returns count of unique active users today
+CREATE OR REPLACE FUNCTION get_dau_today()
+RETURNS BIGINT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  dau_count BIGINT;
+BEGIN
+  WITH active_users_today AS (
+    -- Users who signed up today
+    SELECT id as user_id
+    FROM auth.users
+    WHERE DATE_TRUNC('day', created_at) = DATE_TRUNC('day', NOW())
+      AND NOT (email ILIKE '%connor%' AND email ILIKE '%provines%')
+
+    UNION
+
+    -- Users who created campaigns today
+    SELECT c.owner_id as user_id
+    FROM campaigns c
+    INNER JOIN auth.users u ON c.owner_id = u.id
+    WHERE DATE_TRUNC('day', c.created_at) = DATE_TRUNC('day', NOW())
+      AND NOT (u.email ILIKE '%connor%' AND u.email ILIKE '%provines%')
+
+    UNION
+
+    -- Users who updated campaigns today
+    SELECT c.owner_id as user_id
+    FROM campaigns c
+    INNER JOIN auth.users u ON c.owner_id = u.id
+    WHERE DATE_TRUNC('day', c.updated_at) = DATE_TRUNC('day', NOW())
+      AND c.updated_at != c.created_at
+      AND NOT (u.email ILIKE '%connor%' AND u.email ILIKE '%provines%')
+
+    UNION
+
+    -- Users who joined campaigns today
+    SELECT cm.user_id
+    FROM campaign_members cm
+    INNER JOIN auth.users u ON cm.user_id = u.id
+    WHERE DATE_TRUNC('day', cm.joined_at) = DATE_TRUNC('day', NOW())
+      AND NOT (u.email ILIKE '%connor%' AND u.email ILIKE '%provines%')
+  )
+  SELECT COUNT(DISTINCT user_id)::BIGINT INTO dau_count
+  FROM active_users_today;
+
+  RETURN COALESCE(dau_count, 0);
+END;
+$$;
+
+-- =====================================================
 -- SETUP COMPLETE
 -- =====================================================
 -- Next steps:

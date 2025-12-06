@@ -151,6 +151,10 @@ $$;
 --   3. Updated a campaign they own that day, OR
 --   4. Joined a campaign that day
 -- This ensures DAU >= daily signups (since new users who create campaigns count as active)
+
+-- Drop existing function if it exists (may have different signature)
+DROP FUNCTION IF EXISTS get_daily_active_users(INTEGER);
+
 CREATE OR REPLACE FUNCTION get_daily_active_users(days_back INTEGER DEFAULT 30)
 RETURNS TABLE (
   date TEXT,
@@ -217,6 +221,10 @@ $$;
 -- 6. Get DAU for Today
 -- =====================================================
 -- Returns count of unique active users today
+
+-- Drop existing function if it exists (may have different signature)
+DROP FUNCTION IF EXISTS get_dau_today();
+
 CREATE OR REPLACE FUNCTION get_dau_today()
 RETURNS BIGINT
 LANGUAGE plpgsql

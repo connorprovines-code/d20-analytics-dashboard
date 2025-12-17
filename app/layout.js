@@ -49,8 +49,46 @@ export default function RootLayout({ children }) {
             margin-bottom: 1rem;
           }
 
-          .date-range-selector {
+          .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
             margin-top: 1rem;
+          }
+
+          .tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+          }
+
+          .tabs button {
+            padding: 0.5rem 1rem;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            background: white;
+            color: #667eea;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+
+          .tabs button:hover {
+            background: rgba(102, 126, 234, 0.1);
+          }
+
+          .tabs button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+          }
+
+          .date-range-selector {
+            display: flex;
+            align-items: center;
           }
 
           .date-range-selector label {
@@ -81,23 +119,35 @@ export default function RootLayout({ children }) {
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
           }
 
+          section {
+            margin-bottom: 2rem;
+          }
+
+          .section-title {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f0f0;
+          }
+
           .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
             margin-bottom: 2rem;
           }
 
           .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 1.5rem;
+            padding: 1.25rem;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
           }
 
           .stat-card h3 {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0.9;
@@ -105,13 +155,13 @@ export default function RootLayout({ children }) {
           }
 
           .stat-value {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: bold;
             margin-bottom: 0.25rem;
           }
 
           .stat-subtitle {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             opacity: 0.8;
           }
 
@@ -139,6 +189,13 @@ export default function RootLayout({ children }) {
             color: #333;
             font-size: 1.25rem;
             margin-bottom: 1rem;
+          }
+
+          .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+            font-style: italic;
           }
 
           footer {

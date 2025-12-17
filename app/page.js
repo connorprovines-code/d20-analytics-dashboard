@@ -5,16 +5,18 @@ import { getSignupMetrics, getCampaignMetrics, getOverviewStats, getUserActivity
 import SignupChart from '../components/SignupChart';
 import CampaignChart from '../components/CampaignChart';
 import DailyActiveUsersChart from '../components/DailyActiveUsersChart';
+import ActivityChart from '../components/ActivityChart';
 import StatCard from '../components/StatCard';
 
 // Helper function to fill in missing days with zero counts
+// Uses UTC to match server-side date handling in Supabase
 function fillMissingDays(data, days) {
   const filled = [];
   const dataMap = new Map(data.map(d => [d.date, d.count]));
 
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date();
-    date.setDate(date.getDate() - i);
+    date.setUTCDate(date.getUTCDate() - i);
     const dateStr = date.toISOString().split('T')[0];
 
     filled.push({
@@ -162,6 +164,7 @@ export default function Dashboard() {
       <div className="charts-grid">
         <SignupChart data={signupData} />
         <CampaignChart data={campaignData} />
+        <ActivityChart data={activityData} />
         <DailyActiveUsersChart data={dauData} />
       </div>
 

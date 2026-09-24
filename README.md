@@ -1,73 +1,61 @@
 # D20 Loot Tracker Analytics Dashboard
 
-Analytics dashboard for tracking D20 Loot Tracker usage metrics - signups, campaigns, and user activity.
+Password-protected analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Discord bot, the Android beta, app errors, and community feedback.
 
-## Features
+## How it works
 
-- **Daily Signups** - Track new user registrations over time
-- **Campaign Activity** - Monitor campaign creation trends
-- **Overview Stats** - Quick metrics: total users, total campaigns, active campaigns (7d), new users (7d)
-- **Test Account Filtering** - Automatically excludes emails containing both "connor" AND "provines"
-- **Real-time Data** - Powered by Supabase with live metrics
+- All data is fetched server-side. The browser never talks to Supabase, Discord or Sentry, and no key is shipped to the client.
+- Postgres is reached over `DATABASE_URL` with the `pg` package. The page calls the same 16 analytics functions as before (`get_signup_metrics`, `get_overview_stats`, ...) plus direct counts on the Discord bot and Android beta tables.
+- `proxy.js` (Next 16's name for middleware) redirects every request without a valid session cookie to `/login`. The page checks the session again server-side.
+- `/login` compares the password in constant time against `DASHBOARD_PASSWORD` and sets an httpOnly, secure, `SameSite=Lax` cookie signed with HMAC-SHA256 (`DASHBOARD_SESSION_SECRET`), valid for 30 days. `/logout` clears it.
+- Every source fails soft: if a table, API or token is missing, only its cards show "unavailable".
+- Discord and Sentry responses are cached for 5 minutes (`unstable_cache`, `revalidate: 300`).
 
-## Tech Stack
+## Tabs
 
-- **Next.js 16** - React framework with App Router
-- **Recharts** - Beautiful charting library
-- **Supabase** - PostgreSQL database with RPC functions
-- **Vercel** - Deployment platform
+| Tab | Source |
+| --- | --- |
+| Overview, Engagement, Features, Economy | The 16 analytics functions in `supabase_analytics_functions.sql` |
+| Discord Bot | `public.discord_accounts`, `public.discord_channels`, `public.discord_command_usage` (last 30 days) |
+| Android Beta | `public.android_beta_signups`, `public.android_beta_optins` (12 testers for 14 days rule) |
+| App Health | sentry.io: unresolved issues (`/organizations/{org}/issues/`), accepted error events 24h/7d (`/organizations/{org}/stats_v2/`), plus the overview numbers |
+| Feedback & Bugs | Last 30 messages in Discord #bug-reports and #feature-requests; a ✅ reaction marks a message Fixed |
 
-## Setup
+The date range selector is a `?range=` URL parameter; the active tab is `?tab=`.
 
-### 1. Install Dependencies
+## Environment variables
+
+All are server-side only. Set them in Vercel (Production and Preview) and in `.env.local` for local runs.
+
+| Name | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | Supabase Postgres connection string. Use the pooler in transaction mode (port 6543). SSL is on with certificate verification off, as the Supabase pooler requires. |
+| `DASHBOARD_PASSWORD` | yes | The single login password. |
+| `DASHBOARD_SESSION_SECRET` | yes | HMAC key for the session cookie, at least 32 characters (for example `openssl rand -hex 32`). Changing it signs everyone out. |
+| `DISCORD_BOT_TOKEN` | for Feedback & Bugs | Bot token of a bot in the D20 Discord server that can read #bug-reports and #feature-requests. Needs the Message Content intent for message text. |
+| `SENTRY_AUTH_TOKEN` | for App Health errors | sentry.io token with `event:read` (issues) and `org:read` (event stats). A source-map upload token (`org:ci`) is not enough. |
+| `SENTRY_ORG` | no | sentry.io organization slug. Defaults to `d20-loot-tracker`. |
+| `SENTRY_PROJECT` | no | Numeric sentry.io project ID to limit the counts to one project. Defaults to all projects in the org. |
+
+The old `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are no longer used and can be removed from Vercel.
+
+## Lock down the analytics functions
+
+The 16 functions are `SECURITY DEFINER` and were executable with the public anon key. After the server-side version is deployed and verified, run `supabase/revoke_anon.sql` in the Supabase SQL editor. It revokes `EXECUTE` from `public`, `anon` and `authenticated` and grants it to `postgres` and `service_role` only. The rollback statement is at the bottom of the file.
+
+## Local development
 
 ```bash
 npm install
+cp .env.example .env.local   # fill in values; .env.local is gitignored
+npm run dev -- -p 3150
 ```
 
-### 2. Configure Environment Variables
+Open http://localhost:3150 and sign in with `DASHBOARD_PASSWORD`.
 
-```bash
-cp .env.example .env.local
-```
+## Test account filtering
 
-Edit `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-```
-
-### 3. Run Database Migration
-
-Execute `supabase_analytics_functions.sql` in your Supabase SQL editor. This creates the analytics functions:
-
-- `get_signup_metrics(days_back)` - Daily signup counts
-- `get_campaign_metrics(days_back)` - Daily campaign creation counts
-- `get_activity_metrics(days_back)` - Daily user activity (campaign joins)
-- `get_overview_stats()` - Overview metrics for dashboard cards
-
-### 4. Run Locally
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
-### 5. Deploy to Vercel
-
-```bash
-vercel --prod
-```
-
-Or connect your GitHub repo to Vercel for automatic deployments.
-
-## Test Account Filtering
-
-All analytics queries automatically exclude accounts where the email contains **both** "connor" AND "provines". This filters out development/testing activity from metrics.
-
-The filter is applied in the SQL functions:
+All analytics functions exclude accounts whose email contains both "connor" and "provines":
 
 ```sql
 AND NOT (
@@ -75,85 +63,32 @@ AND NOT (
 )
 ```
 
-## Analytics Functions
-
-### Overview Stats
-
-Returns aggregated metrics:
-- Total users (all-time, excluding test accounts)
-- Total campaigns (all-time, excluding test campaigns)
-- Active campaigns in last 7 days
-- New users in last 7 days
-
-### Signup Metrics
-
-Daily breakdown of new user signups for the last 30 days (configurable).
-
-### Campaign Metrics
-
-Daily breakdown of campaign creations for the last 30 days (configurable).
-
-### Activity Metrics
-
-Daily breakdown of user activity (campaign member joins) for the last 30 days (configurable).
-
-## Project Structure
+## Project structure
 
 ```
-d20-analytics-dashboard/
-├── app/
-│   ├── layout.js         # Root layout with global styles
-│   └── page.js           # Main dashboard page
-├── components/
-│   ├── SignupChart.js    # Daily signups line chart
-│   ├── CampaignChart.js  # Campaign activity bar chart
-│   └── StatCard.js       # Metric card component
-├── lib/
-│   ├── supabase.js       # Supabase client setup
-│   └── metrics.js        # Analytics data fetching functions
-├── supabase_analytics_functions.sql  # Database functions
-├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
+app/
+  layout.js             Global styles
+  page.js               Server component: checks the session, loads every source
+  login/page.js         Password form
+  login/actions.js      Server action: password check, sets the session cookie
+  logout/route.js       Clears the session cookie
+components/
+  Dashboard.js          Client component: tabs and range selector
+  *Chart.js, StatCard.js, TopList.js, FeedbackList.js, Unavailable.js
+lib/
+  db.js                 pg pool (server-only)
+  auth.js               Session token signing and password check
+  metrics.js            Analytics functions, Discord bot and Android beta queries
+  sentry.js             sentry.io API
+  discordFeedback.js    Discord channel messages
+  safe.js               Fail-soft wrapper
+proxy.js                Redirects unauthenticated requests to /login
+supabase/revoke_anon.sql
+supabase_analytics_functions.sql
 ```
 
-## Customization
+## Related repos
 
-### Change Date Range
-
-Edit `app/page.js` to adjust the default days:
-
-```javascript
-const [signups, campaigns, activity, overview] = await Promise.all([
-  getSignupMetrics(60),  // 60 days instead of 30
-  getCampaignMetrics(60),
-  getUserActivityMetrics(60),
-  getOverviewStats()
-]);
-```
-
-### Modify Test Account Filter
-
-Edit the filter in `supabase_analytics_functions.sql`:
-
-```sql
--- Example: Filter emails containing "test" OR "demo"
-AND NOT (
-  email ILIKE '%test%' OR email ILIKE '%demo%'
-)
-```
-
-Then re-run the SQL in Supabase SQL Editor.
-
-## Support
-
-For issues related to the dashboard, check:
-- Supabase project is active (not paused)
-- Environment variables are correct
-- Analytics functions are installed in Supabase
-
-For D20 Loot Tracker core app issues, see:
 - [Frontend](https://github.com/connorprovines-code/d20-loot-tracker-front-end)
 - [Backend](https://github.com/connorprovines-code/D20-Loot-tracker-back-end)
 - [Discord Bot](https://github.com/connorprovines-code/d20-loot-tracker-discord-bot)

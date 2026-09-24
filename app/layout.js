@@ -1,6 +1,7 @@
 export const metadata = {
   title: 'D20 Loot Tracker Analytics',
   description: 'Usage metrics and analytics dashboard',
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }) {
@@ -215,6 +216,235 @@ export default function RootLayout({ children }) {
 
           .error {
             color: #e74c3c;
+          }
+
+          .header-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5rem 1rem;
+          }
+
+          .logout-link {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+          }
+
+          .logout-link:hover {
+            text-decoration: underline;
+          }
+
+          .container.is-loading {
+            opacity: 0.6;
+            transition: opacity 0.2s;
+          }
+
+          .stat-card-unavailable {
+            background: #e9eaf5;
+            color: #5b5f7a;
+            box-shadow: none;
+          }
+
+          .stat-card-unavailable .stat-value {
+            font-size: 1.25rem;
+            font-style: italic;
+            padding: 0.4rem 0;
+          }
+
+          .top-list {
+            list-style: none;
+            display: grid;
+            gap: 0.6rem;
+          }
+
+          .top-list li {
+            display: grid;
+            grid-template-columns: minmax(0, 8rem) 1fr auto;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .top-list-label {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .top-list-bar {
+            height: 0.9rem;
+            min-width: 2px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+
+          .top-list-value {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+          }
+
+          .feedback-list {
+            list-style: none;
+            display: grid;
+            gap: 0.75rem;
+            max-height: 70vh;
+            overflow-y: auto;
+          }
+
+          .feedback-item {
+            background: white;
+            border-radius: 6px;
+            padding: 0.75rem;
+            border: 1px solid #eceef6;
+            min-width: 0;
+          }
+
+          .feedback-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.25rem 0.6rem;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.35rem;
+          }
+
+          .feedback-author {
+            font-weight: 600;
+            color: #333;
+          }
+
+          .feedback-text {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+            margin-bottom: 0.35rem;
+          }
+
+          .feedback-extras {
+            color: #888;
+            font-size: 0.8rem;
+          }
+
+          .feedback-link {
+            font-size: 0.8rem;
+            color: #667eea;
+            font-weight: 600;
+          }
+
+          .badge {
+            display: inline-block;
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .badge-open {
+            background: #fdecea;
+            color: #b42318;
+          }
+
+          .badge-fixed {
+            background: #e7f6ec;
+            color: #1a7f37;
+          }
+
+          .login-box {
+            max-width: 420px;
+            margin-top: 10vh;
+          }
+
+          .login-box h1 {
+            font-size: 1.75rem;
+          }
+
+          .login-form {
+            display: grid;
+            gap: 0.75rem;
+          }
+
+          .login-form label {
+            font-weight: 600;
+          }
+
+          .login-form input {
+            padding: 0.6rem 0.75rem;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 100%;
+          }
+
+          .login-form input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+          }
+
+          .login-form button {
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .login-error {
+            color: #e74c3c;
+            font-weight: 600;
+          }
+
+          .chart-container {
+            min-width: 0;
+          }
+
+          @media (max-width: 640px) {
+            body {
+              padding: 0.75rem;
+            }
+
+            .container {
+              padding: 1rem;
+            }
+
+            h1 {
+              font-size: 1.6rem;
+            }
+
+            .section-title {
+              font-size: 1.2rem;
+            }
+
+            .stats-grid {
+              grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+
+            .stat-value {
+              font-size: 1.5rem;
+            }
+
+            .chart-container {
+              padding: 1rem 0.5rem;
+            }
+
+            .chart-container h2 {
+              padding: 0 0.5rem;
+            }
+
+            .tabs button {
+              padding: 0.4rem 0.7rem;
+              font-size: 0.85rem;
+            }
           }
         `}</style>
       </head>

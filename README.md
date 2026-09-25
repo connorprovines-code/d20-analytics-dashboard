@@ -1,13 +1,11 @@
 # D20 Loot Tracker Analytics Dashboard
 
-Password-protected analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Discord bot, the Android beta, app errors, and community feedback.
+Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Discord bot, the Android beta, app errors, and community feedback. Anyone with the URL can view it (Connor's call, 2026-09-24); it is not indexed.
 
 ## How it works
 
 - All data is fetched server-side. The browser never talks to Supabase, Discord or Sentry, and no key is shipped to the client.
 - Postgres is reached over `DATABASE_URL` with the `pg` package. The page calls the same 16 analytics functions as before (`get_signup_metrics`, `get_overview_stats`, ...) plus direct counts on the Discord bot and Android beta tables.
-- `proxy.js` (Next 16's name for middleware) redirects every request without a valid session cookie to `/login`. The page checks the session again server-side.
-- `/login` compares the password in constant time against `DASHBOARD_PASSWORD` and sets an httpOnly, secure, `SameSite=Lax` cookie signed with HMAC-SHA256 (`DASHBOARD_SESSION_SECRET`), valid for 30 days. `/logout` clears it.
 - Every source fails soft: if a table, API or token is missing, only its cards show "unavailable".
 - Discord and Sentry responses are cached for 5 minutes (`unstable_cache`, `revalidate: 300`).
 
@@ -30,14 +28,12 @@ All are server-side only. Set them in Vercel (Production and Preview) and in `.e
 | Name | Required | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Supabase Postgres connection string. Use the pooler in transaction mode (port 6543). SSL is on with certificate verification off, as the Supabase pooler requires. |
-| `DASHBOARD_PASSWORD` | yes | The single login password. |
-| `DASHBOARD_SESSION_SECRET` | yes | HMAC key for the session cookie, at least 32 characters (for example `openssl rand -hex 32`). Changing it signs everyone out. |
 | `DISCORD_BOT_TOKEN` | for Feedback & Bugs | Bot token of a bot in the D20 Discord server that can read #bug-reports and #feature-requests. Needs the Message Content intent for message text. |
 | `SENTRY_AUTH_TOKEN` | for App Health errors | sentry.io token with `event:read` (issues) and `org:read` (event stats). A source-map upload token (`org:ci`) is not enough. |
 | `SENTRY_ORG` | no | sentry.io organization slug. Defaults to `d20-loot-tracker`. |
 | `SENTRY_PROJECT` | no | Numeric sentry.io project ID to limit the counts to one project. Defaults to all projects in the org. |
 
-The old `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are no longer used and can be removed from Vercel.
+The old `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DASHBOARD_PASSWORD` and `DASHBOARD_SESSION_SECRET` are no longer used and can be removed from Vercel.
 
 ## Lock down the analytics functions
 
@@ -51,7 +47,7 @@ cp .env.example .env.local   # fill in values; .env.local is gitignored
 npm run dev -- -p 3150
 ```
 
-Open http://localhost:3150 and sign in with `DASHBOARD_PASSWORD`.
+Open http://localhost:3150.
 
 ## Test account filtering
 
@@ -68,21 +64,16 @@ AND NOT (
 ```
 app/
   layout.js             Global styles
-  page.js               Server component: checks the session, loads every source
-  login/page.js         Password form
-  login/actions.js      Server action: password check, sets the session cookie
-  logout/route.js       Clears the session cookie
+  page.js               Server component: loads every source
 components/
   Dashboard.js          Client component: tabs and range selector
   *Chart.js, StatCard.js, TopList.js, FeedbackList.js, Unavailable.js
 lib/
   db.js                 pg pool (server-only)
-  auth.js               Session token signing and password check
   metrics.js            Analytics functions, Discord bot and Android beta queries
   sentry.js             sentry.io API
   discordFeedback.js    Discord channel messages
   safe.js               Fail-soft wrapper
-proxy.js                Redirects unauthenticated requests to /login
 supabase/revoke_anon.sql
 supabase_analytics_functions.sql
 ```

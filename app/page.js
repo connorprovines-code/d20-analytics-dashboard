@@ -1,6 +1,3 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { SESSION_COOKIE, verifySessionToken } from '../lib/auth';
 import { getCoreMetrics, getDiscordBotMetrics, getAndroidBetaMetrics } from '../lib/metrics';
 import { getSentryMetrics } from '../lib/sentry';
 import { getFeedback } from '../lib/discordFeedback';
@@ -12,10 +9,6 @@ const RANGES = [7, 14, 30, 60, 90, 365];
 const TABS = ['overview', 'engagement', 'features', 'economy', 'discord', 'beta', 'health', 'feedback'];
 
 export default async function Page({ searchParams }) {
-  // Defence in depth: proxy.js already gates this route, but check the session here too.
-  const store = await cookies();
-  if (!(await verifySessionToken(store.get(SESSION_COOKIE)?.value))) redirect('/login');
-
   const params = await searchParams;
   const range = RANGES.includes(Number(params?.range)) ? Number(params.range) : 30;
   const tab = TABS.includes(params?.tab) ? params.tab : 'overview';

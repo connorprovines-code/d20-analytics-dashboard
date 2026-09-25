@@ -93,7 +93,6 @@ export default function Dashboard({ range, initialTab, core, discord, beta, sent
       <header>
         <div className="header-row">
           <h1>D20 Loot Tracker Analytics</h1>
-          <a className="logout-link" href="/logout">Log out</a>
         </div>
         <p className="subtitle">Usage, community and app health metrics</p>
         <div className="controls">

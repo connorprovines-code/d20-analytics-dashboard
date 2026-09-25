@@ -226,17 +226,6 @@ export default function RootLayout({ children }) {
             gap: 0.5rem 1rem;
           }
 
-          .logout-link {
-            color: #667eea;
-            font-weight: 600;
-            text-decoration: none;
-            white-space: nowrap;
-          }
-
-          .logout-link:hover {
-            text-decoration: underline;
-          }
-
           .container.is-loading {
             opacity: 0.6;
             transition: opacity 0.2s;
@@ -354,54 +343,6 @@ export default function RootLayout({ children }) {
           .badge-fixed {
             background: #e7f6ec;
             color: #1a7f37;
-          }
-
-          .login-box {
-            max-width: 420px;
-            margin-top: 10vh;
-          }
-
-          .login-box h1 {
-            font-size: 1.75rem;
-          }
-
-          .login-form {
-            display: grid;
-            gap: 0.75rem;
-          }
-
-          .login-form label {
-            font-weight: 600;
-          }
-
-          .login-form input {
-            padding: 0.6rem 0.75rem;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            font-size: 1rem;
-            width: 100%;
-          }
-
-          .login-form input:focus {
-            outline: none;
-            border-color: #764ba2;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
-          }
-
-          .login-form button {
-            padding: 0.6rem 1rem;
-            border: none;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-          }
-
-          .login-error {
-            color: #e74c3c;
-            font-weight: 600;
           }
 
           .chart-container {

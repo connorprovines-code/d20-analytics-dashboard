@@ -18,9 +18,11 @@ import DailyBarChart from './DailyBarChart';
 import TopList from './TopList';
 import FeedbackList from './FeedbackList';
 import Unavailable from './Unavailable';
+import ChannelChart from './ChannelChart';
 
 const TABS = [
   ['overview', 'Overview'],
+  ['acquisition', 'Acquisition'],
   ['engagement', 'Engagement'],
   ['features', 'Features'],
   ['economy', 'Economy'],
@@ -50,7 +52,7 @@ function chart(data, title, render) {
   return data ? render(data) : <Unavailable title={title} />;
 }
 
-export default function Dashboard({ range, initialTab, core, discord, beta, sentry, feedback, generatedAt }) {
+export default function Dashboard({ range, initialTab, core, acquisition, discord, beta, sentry, feedback, generatedAt }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [pending, startTransition] = useTransition();
@@ -82,6 +84,9 @@ export default function Dashboard({ range, initialTab, core, discord, beta, sent
   const acceptance = collab && collab.total_invites_sent > 0
     ? ((collab.invites_accepted / collab.total_invites_sent) * 100).toFixed(0) + '% acceptance rate'
     : '0% acceptance rate';
+
+  const acq = acquisition.data;
+  const acqTotal = (key) => (acq ? acq.totals[key] : null);
 
   const channels = discord.channels;
   const usage = discord.usage;
@@ -140,6 +145,42 @@ export default function Dashboard({ range, initialTab, core, discord, beta, sent
             <div className="charts-grid">
               {chart(core.gameSystems, 'Campaigns by Game System', (d) => <GameSystemChart data={d} />)}
               {chart(core.retention, 'User Activity by Week (Last 30 Days)', (d) => <RetentionChart data={d} />)}
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* ACQUISITION TAB */}
+      {activeTab === 'acquisition' && (
+        <>
+          <section>
+            <h2 className="section-title">Where Signups Came From</h2>
+            <div className="stats-grid">
+              <StatCard title={`Signups (${range}d)`} value={acq ? acq.total : null} subtitle="Test accounts filtered" reason={acquisition.reason} />
+              <StatCard title="Invited by a group" value={acqTotal('invited')} subtitle="Invite or guest link" reason={acquisition.reason} />
+              <StatCard title="Android app" value={acqTotal('android')} subtitle="Signed up in the app" reason={acquisition.reason} />
+              <StatCard title="Web" value={acqTotal('web')} subtitle={acq ? `${acq.viaSite} through the marketing site` : null} reason={acquisition.reason} />
+              <StatCard title="Web, not recorded" value={acqTotal('unrecorded')} subtitle="Before sources were recorded" reason={acquisition.reason} />
+            </div>
+          </section>
+
+          <section>
+            <div className="charts-grid">
+              {acq ? (
+                <ChannelChart title={acq.weekly ? 'Signups per Week by Source' : 'Signups per Day by Source'} data={acq.series} weekly={acq.weekly} />
+              ) : (
+                <Unavailable title="Signups by Source" reason={acquisition.reason} />
+              )}
+              {acq ? (
+                <TopList title="Web Signups by Source" rows={acq.sources} labelKey="label" valueKey="count" empty="No web signups with a recorded source yet" />
+              ) : (
+                <Unavailable title="Web Signups by Source" reason={acquisition.reason} />
+              )}
+              {acq ? (
+                <TopList title="Marketing Pages They Landed On" rows={acq.landings} labelKey="label" valueKey="count" empty="No marketing site visits recorded yet" />
+              ) : (
+                <Unavailable title="Marketing Pages They Landed On" reason={acquisition.reason} />
+              )}
             </div>
           </section>
         </>

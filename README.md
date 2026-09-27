@@ -14,12 +14,32 @@ Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Di
 | Tab | Source |
 | --- | --- |
 | Overview, Engagement, Features, Economy | The 16 analytics functions in `supabase_analytics_functions.sql` |
+| Acquisition | `auth.users` (`raw_user_meta_data.signup_source`), first session in `auth.sessions`, first join in `public.campaign_members`. See below. |
 | Discord Bot | `public.discord_accounts`, `public.discord_channels`, `public.discord_command_usage` (last 30 days) |
 | Android Beta | `public.android_beta_signups`, `public.android_beta_optins` (12 testers for 14 days rule) |
 | App Health | sentry.io: unresolved issues (`/organizations/{org}/issues/`), accepted error events 24h/7d (`/organizations/{org}/stats_v2/`), plus the overview numbers |
 | Feedback & Bugs | Last 30 messages in Discord #bug-reports and #feature-requests; a ✅ reaction marks a message Fixed |
 
 The date range selector is a `?range=` URL parameter; the active tab is `?tab=`.
+
+## Acquisition: where signups came from
+
+Since 2026-09-27 the app saves where each new account came from in `user_metadata.signup_source`
+(`src/signupSource.js` in the backend repo): the platform, how they entered the app (invite, guest
+link, demo, Discord, Foundry), the referrer host and utm tags, and `site`. `site` is the marketing
+site's record of the visitor's first visit there, carried in a `d20_src` cookie on the shared
+`d20-loot-tracker.com` domain.
+
+`lib/acquisition.js` sorts each signup into one channel, first match wins:
+
+| Channel | Rule |
+| --- | --- |
+| Invited by a group | Joined someone else's campaign within 2 days of signing up, or entered through an invite or guest link |
+| Android app | Signed up in the app, or (older accounts) their first session was in the app's WebView |
+| Web | Everything else with a recorded source, broken down by the earliest source known: marketing site utm tag, marketing site referrer, app utm tag, app referrer, else Direct |
+| Web, source not recorded | Older accounts with none of the above |
+
+The range covers whole UTC days, so the cards and the chart add up.
 
 ## Environment variables
 
@@ -51,7 +71,8 @@ Open http://localhost:3150.
 
 ## Test account filtering
 
-All analytics functions exclude accounts whose email contains both "connor" and "provines":
+All analytics functions exclude accounts whose email contains both "connor" and "provines" (the
+Acquisition tab also excludes `@agentmail.to`, the Play review account and other agent-made accounts):
 
 ```sql
 AND NOT (
@@ -70,7 +91,8 @@ components/
   *Chart.js, StatCard.js, TopList.js, FeedbackList.js, Unavailable.js
 lib/
   db.js                 pg pool (server-only)
-  metrics.js            Analytics functions, Discord bot and Android beta queries
+  metrics.js            Analytics functions, acquisition, Discord bot and Android beta queries
+  acquisition.js        Signup channels and web sources (pure functions)
   sentry.js             sentry.io API
   discordFeedback.js    Discord channel messages
   safe.js               Fail-soft wrapper

@@ -11,7 +11,7 @@ export default function TopList({ title, rows, labelKey, valueKey, empty = 'No d
         <ol className="top-list">
           {rows.map((r) => (
             <li key={r[labelKey]}>
-              <span className="top-list-label">{r[labelKey]}</span>
+              <span className="top-list-label" title={r[labelKey]}>{r[labelKey]}</span>
               <span className="top-list-bar" style={{ width: `${(Number(r[valueKey]) / max) * 100}%` }} />
               <span className="top-list-value">{Number(r[valueKey]).toLocaleString()}</span>
             </li>

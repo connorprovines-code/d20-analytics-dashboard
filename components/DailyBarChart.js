@@ -2,7 +2,8 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function DailyBarChart({ title, data, color = '#8884d8', label = 'Count' }) {
+// `weekly`: each bar is the week starting on its date.
+export default function DailyBarChart({ title, data, color = '#8884d8', label = 'Count', weekly = false }) {
   return (
     <div className="chart-container">
       <h2>{title}</h2>
@@ -11,7 +12,7 @@ export default function DailyBarChart({ title, data, color = '#8884d8', label = 
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
           <YAxis allowDecimals={false} />
-          <Tooltip />
+          <Tooltip labelFormatter={weekly ? (d) => `Week of ${d}` : undefined} />
           <Bar dataKey="count" fill={color} name={label} />
         </BarChart>
       </ResponsiveContainer>

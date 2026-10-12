@@ -7,7 +7,7 @@ import CampaignChart from './CampaignChart';
 import DailyActiveUsersChart from './DailyActiveUsersChart';
 import ActivityChart from './ActivityChart';
 import StatCard from './StatCard';
-import GameSystemChart from './GameSystemChart';
+import GameSystemChart, { GAME_LABELS } from './GameSystemChart';
 import TransactionChart from './TransactionChart';
 import RarityChart from './RarityChart';
 import FeatureUtilizationChart from './FeatureUtilizationChart';
@@ -27,6 +27,7 @@ const TABS = [
   ['features', 'Features'],
   ['economy', 'Economy'],
   ['discord', 'Discord Bot'],
+  ['foundry', 'Foundry'],
   ['beta', 'Android Beta'],
   ['health', 'App Health'],
   ['feedback', 'Feedback & Bugs'],
@@ -38,6 +39,7 @@ const OPTIN_DAYS_REQUIRED = 14;
 // Field from a source object, or null when the whole source is unavailable.
 const f = (obj, key) => (obj ? obj[key] ?? 0 : null);
 const fixed1 = (v) => (v === null ? null : Number(v || 0).toFixed(1));
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 function formatGold(value) {
   if (value === null || value === undefined) return null;
@@ -52,7 +54,7 @@ function chart(data, title, render) {
   return data ? render(data) : <Unavailable title={title} />;
 }
 
-export default function Dashboard({ range, initialTab, core, acquisition, discord, beta, sentry, feedback, generatedAt }) {
+export default function Dashboard({ range, initialTab, core, acquisition, discord, foundry, beta, sentry, feedback, generatedAt }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [pending, startTransition] = useTransition();
@@ -90,6 +92,8 @@ export default function Dashboard({ range, initialTab, core, acquisition, discor
 
   const channels = discord.channels;
   const usage = discord.usage;
+  const fw = foundry.worlds;
+  const fsign = foundry.signups;
   const status = beta.status;
   const optins = beta.optins;
 
@@ -316,6 +320,58 @@ export default function Dashboard({ range, initialTab, core, acquisition, discor
                 <TopList title="Top Commands" rows={usage.top} labelKey="command" valueKey="count" empty="No commands recorded" />
               ) : (
                 <Unavailable title="Top Commands" reason={discord.usageReason} />
+              )}
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* FOUNDRY TAB */}
+      {activeTab === 'foundry' && (
+        <>
+          <section>
+            <h2 className="section-title">Foundry VTT Module</h2>
+            <div className="stats-grid">
+              <StatCard
+                title="Live Worlds"
+                value={f(fw, 'live')}
+                subtitle={fw ? `${plural(fw.live_accounts, 'account')}, ${plural(fw.live_campaigns, 'campaign')}` : null}
+                reason={foundry.worldsReason}
+              />
+              <StatCard title="Active (7d)" value={f(fw, 'active_7d')} subtitle="Live worlds seen in the last 7 days" reason={foundry.worldsReason} />
+              <StatCard
+                title={`New Worlds (${range}d)`}
+                value={f(fw, 'new_in_range')}
+                subtitle={fw ? `${fw.new_by_new_accounts} by new accounts, ${fw.new_in_range - fw.new_by_new_accounts} by older` : null}
+                reason={foundry.worldsReason}
+              />
+              <StatCard title={`Foundry Signups (${range}d)`} value={fsign ? fsign.total : null} subtitle="First touch was Foundry" reason={foundry.signupsReason} />
+              <StatCard
+                title="Of Those, Connected"
+                value={fsign ? fsign.connected : null}
+                subtitle="Foundry signups who connected a world"
+                reason={foundry.signupsReason}
+              />
+            </div>
+          </section>
+
+          <section>
+            <div className="charts-grid">
+              {fw ? (
+                <DailyBarChart title={`New World Connections per Week (${range}d)`} data={fw.weekly} color="#e8710a" label="Connections" weekly />
+              ) : (
+                <Unavailable title="New World Connections per Week" reason={foundry.worldsReason} />
+              )}
+              {fw ? (
+                <TopList
+                  title="Live Worlds by Game System"
+                  rows={fw.systems.map((s) => ({ label: GAME_LABELS[s.game_system] || s.game_system, count: s.count }))}
+                  labelKey="label"
+                  valueKey="count"
+                  empty="No live worlds yet"
+                />
+              ) : (
+                <Unavailable title="Live Worlds by Game System" reason={foundry.worldsReason} />
               )}
             </div>
           </section>

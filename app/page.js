@@ -1,4 +1,4 @@
-import { getCoreMetrics, getDiscordBotMetrics, getAndroidBetaMetrics, getAcquisitionMetrics } from '../lib/metrics';
+import { getCoreMetrics, getDiscordBotMetrics, getFoundryMetrics, getAndroidBetaMetrics, getAcquisitionMetrics } from '../lib/metrics';
 import { getSentryMetrics } from '../lib/sentry';
 import { getFeedback } from '../lib/discordFeedback';
 import Dashboard from '../components/Dashboard';
@@ -6,17 +6,18 @@ import Dashboard from '../components/Dashboard';
 export const dynamic = 'force-dynamic';
 
 const RANGES = [7, 14, 30, 60, 90, 365];
-const TABS = ['overview', 'acquisition', 'engagement', 'features', 'economy', 'discord', 'beta', 'health', 'feedback'];
+const TABS = ['overview', 'acquisition', 'engagement', 'features', 'economy', 'discord', 'foundry', 'beta', 'health', 'feedback'];
 
 export default async function Page({ searchParams }) {
   const params = await searchParams;
   const range = RANGES.includes(Number(params?.range)) ? Number(params.range) : 30;
   const tab = TABS.includes(params?.tab) ? params.tab : 'overview';
 
-  const [core, acquisition, discord, beta, sentry, feedback] = await Promise.all([
+  const [core, acquisition, discord, foundry, beta, sentry, feedback] = await Promise.all([
     getCoreMetrics(range),
     getAcquisitionMetrics(range),
     getDiscordBotMetrics(),
+    getFoundryMetrics(range),
     getAndroidBetaMetrics(range),
     getSentryMetrics(),
     getFeedback(),
@@ -29,6 +30,7 @@ export default async function Page({ searchParams }) {
       core={core}
       acquisition={acquisition}
       discord={discord}
+      foundry={foundry}
       beta={beta}
       sentry={sentry}
       feedback={feedback}

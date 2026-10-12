@@ -3,7 +3,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c43'];
-const GAME_LABELS = {
+export const GAME_LABELS = {
   'dnd-5e': 'D&D 5e',
   'pathfinder-1e': 'Pathfinder 1e',
   'pathfinder-2e': 'Pathfinder 2e',

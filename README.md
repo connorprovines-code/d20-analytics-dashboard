@@ -1,6 +1,6 @@
 # D20 Loot Tracker Analytics Dashboard
 
-Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Discord bot, the Android beta, app errors, and community feedback. Anyone with the URL can view it (Connor's call, 2026-09-24); it is not indexed.
+Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Discord bot, the Foundry VTT module, the Android beta, app errors, and community feedback. Anyone with the URL can view it (Connor's call, 2026-09-24); it is not indexed.
 
 ## How it works
 
@@ -16,6 +16,7 @@ Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Di
 | Overview, Engagement, Features, Economy | The 16 analytics functions in `supabase_analytics_functions.sql` |
 | Acquisition | `auth.users` (`raw_user_meta_data.signup_source`), first session in `auth.sessions`, first join in `public.campaign_members`. See below. |
 | Discord Bot | `public.discord_accounts`, `public.discord_channels`, `public.discord_command_usage` (last 30 days) |
+| Foundry | `public.foundry_connections` joined to `public.campaigns` (game system) and `auth.users`; signups whose first touch was Foundry from `raw_user_meta_data.signup_source`. Aggregates only. See below. |
 | Android Beta | `public.android_beta_signups`, `public.android_beta_optins` (12 testers for 14 days rule) |
 | App Health | sentry.io: unresolved issues (`/organizations/{org}/issues/`), accepted error events 24h/7d (`/organizations/{org}/stats_v2/`), plus the overview numbers |
 | Feedback & Bugs | Last 30 messages in Discord #bug-reports and #feature-requests; a ✅ reaction marks a message Fixed |
@@ -36,10 +37,30 @@ site's record of the visitor's first visit there, carried in a `d20_src` cookie 
 | --- | --- |
 | Invited by a group | Joined someone else's campaign within 2 days of signing up, or entered through an invite or guest link |
 | Android app | Signed up in the app, or (older accounts) their first session was in the app's WebView |
-| Web | Everything else with a recorded source, broken down by the earliest source known: marketing site utm tag, marketing site referrer, app utm tag, app referrer, else Direct |
+| Web | Everything else with a recorded source, broken down by the earliest source known: marketing site utm tag, marketing site referrer, then entering through the Foundry module or the Discord bot, then app utm tag, app referrer, else Direct |
 | Web, source not recorded | Older accounts with none of the above |
 
 The range covers whole UTC days, so the cards and the chart add up.
+
+foundryvtt.com, The Forge (`forge-vtt.com`) and self-hosted Foundry servers (localhost or a private IP)
+are labelled "Foundry VTT". A GM who clicks Connect inside Foundry arrives with their own server as
+the referrer, so entering through the app's `/foundry` page wins over the app-side referrer.
+
+## Foundry: is the module getting used
+
+Counted on the account that connected the world, test accounts excluded (same rule as Acquisition):
+
+- Live worlds (not revoked), with the accounts and campaigns behind them, and their game systems
+- Active (7d): live worlds the module checked in from in the last 7 days (`last_seen_at`)
+- New worlds in the range, per week, split into accounts created in the range and older accounts
+- Signups from Foundry in the range, and how many of them connected a world. An account counts when
+  any recorded first-visit signal points at Foundry (`isFoundryFirstTouch` in `lib/acquisition.js`):
+  it entered through the app's `/foundry` pairing page; its app referrer, marketing site referrer or
+  utm_source is Foundry (foundryvtt.com, forge-vtt.com, localhost or a private IP, `utm_source=foundry`);
+  or its first marketing site page was `/foundry-vtt-loot-tracker`, `/guides/foundry-vtt-module-guide`
+  or `/vs/foundry-vtt-loot-tracker`.
+
+No world titles, emails, user ids or campaign names reach the page.
 
 ## Environment variables
 
@@ -69,10 +90,12 @@ npm run dev -- -p 3150
 
 Open http://localhost:3150.
 
+Tests (pure functions, no database): `npm test`.
+
 ## Test account filtering
 
 All analytics functions exclude accounts whose email contains both "connor" and "provines" (the
-Acquisition tab also excludes `@agentmail.to`, the Play review account and other agent-made accounts):
+Acquisition and Foundry tabs also exclude `@agentmail.to`, the Play review account and other agent-made accounts):
 
 ```sql
 AND NOT (
@@ -91,11 +114,12 @@ components/
   *Chart.js, StatCard.js, TopList.js, FeedbackList.js, Unavailable.js
 lib/
   db.js                 pg pool (server-only)
-  metrics.js            Analytics functions, acquisition, Discord bot and Android beta queries
-  acquisition.js        Signup channels and web sources (pure functions)
+  metrics.js            Analytics functions, acquisition, Discord bot, Foundry and Android beta queries
+  acquisition.js        Signup channels, web sources and the Foundry first-touch rule (pure functions)
   sentry.js             sentry.io API
   discordFeedback.js    Discord channel messages
   safe.js               Fail-soft wrapper
+test/                   node --test files for lib/acquisition.js
 supabase/revoke_anon.sql
 supabase_analytics_functions.sql
 ```

@@ -176,7 +176,7 @@ test('Discord: server count from /applications/@me', async () => {
 });
 
 test('Discord: missing token, rejected token and another app\'s token fail soft', async () => {
-  assert.equal((await safe('d', () => readDiscordApp({ token: '' }))).reason, 'DISCORD_BOT_TOKEN not set');
+  assert.equal((await safe('d', () => readDiscordApp({ token: '' }))).reason, 'DISCORD_LOOT_BOT_TOKEN not set');
   assert.equal((await safe('d', () => readDiscordApp({ token: 't', fetchImpl: async () => json(401, {}) }))).reason, 'bot token rejected');
   const other = async () => json(200, { id: '1', approximate_guild_count: 1 });
   assert.equal((await safe('d', () => readDiscordApp({ token: 't', fetchImpl: other }))).reason, 'token is for a different Discord app');

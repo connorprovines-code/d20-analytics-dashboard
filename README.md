@@ -102,7 +102,8 @@ All are server-side only. Set them in Vercel (Production and Preview) and in `.e
 | Name | Required | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Supabase Postgres connection string. Use the pooler in transaction mode (port 6543). SSL is on with certificate verification off, as the Supabase pooler requires. |
-| `DISCORD_BOT_TOKEN` | for Feedback & Bugs and the Discord server count | Bot token of the "D20 Loot Tracker" app (id 1552490984791744573), which is in the D20 Discord server and can read #bug-reports and #feature-requests. Needs the Message Content intent for message text. A token of another bot is refused for the server count. |
+| `DISCORD_LOOT_BOT_TOKEN` | for the Discord server count | Bot token of the "D20 Loot Tracker" app (id 1552490984791744573), vault discord_loot_app_bot_token. Falls back to DISCORD_BOT_TOKEN when unset. A token of another bot is refused for the server count. |
+| `DISCORD_BOT_TOKEN` | for Feedback & Bugs (and the server count if the one above is unset) | Bot token of the "D20 Loot Tracker" app (id 1552490984791744573), which is in the D20 Discord server and can read #bug-reports and #feature-requests. Needs the Message Content intent for message text. A token of another bot is refused for the server count. |
 | `GOOGLE_PLAY_SA_KEY` | for Play Store installs | The service account key file's JSON (or the same JSON base64-encoded). Vault: `d20_play_reports_service_account`. |
 | `PLAY_REPORTS_BUCKET` | no | Play reports bucket. Defaults to `pubsite_prod_8955575230808742503`. |
 | `SENTRY_AUTH_TOKEN` | for App Health errors | sentry.io token with `event:read` (issues) and `org:read` (event stats). A source-map upload token (`org:ci`) is not enough. |

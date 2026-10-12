@@ -7,7 +7,7 @@ Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Di
 - All data is fetched server-side. The browser never talks to Supabase, Discord or Sentry, and no key is shipped to the client.
 - Postgres is reached over `DATABASE_URL` with the `pg` package. The page calls the same 16 analytics functions as before (`get_signup_metrics`, `get_overview_stats`, ...) plus direct counts on the Discord bot and Android beta tables.
 - Every source fails soft: if a table, API or token is missing, only its cards show "unavailable".
-- Discord and Sentry responses are cached for 5 minutes (`unstable_cache`, `revalidate: 300`).
+- Discord and Sentry responses are cached for 5 minutes (`unstable_cache`, `revalidate: 300`), Google Play reports for 1 hour.
 
 ## Tabs
 
@@ -15,9 +15,9 @@ Analytics dashboard for D20 Loot Tracker: signups, campaigns, engagement, the Di
 | --- | --- |
 | Overview, Engagement, Features, Economy | The 16 analytics functions in `supabase_analytics_functions.sql` |
 | Acquisition | `auth.users` (`raw_user_meta_data.signup_source`), first session in `auth.sessions`, first join in `public.campaign_members`. See below. |
-| Discord Bot | `public.discord_accounts`, `public.discord_channels`, `public.discord_command_usage` (last 30 days) |
-| Foundry | `public.foundry_connections` joined to `public.campaigns` (game system) and `auth.users`; signups whose first touch was Foundry from `raw_user_meta_data.signup_source`. Aggregates only. See below. |
-| Android Beta | `public.android_beta_signups`, `public.android_beta_optins` (12 testers for 14 days rule) |
+| Discord Bot | Servers with the app: Discord's `approximate_guild_count` from `GET /applications/@me` (bot token of the "D20 Loot Tracker" app, id 1552490984791744573). `public.discord_accounts`, `public.discord_channels`, `public.discord_command_usage` (last 30 days) |
+| Foundry | `public.foundry_connections` joined to `public.campaigns` (game system) and `auth.users`; signups whose first touch was Foundry from `raw_user_meta_data.signup_source`; module downloads and update checks from `public.foundry_package_hits`. Aggregates only. See below. |
+| Android | Play Store installs from the Google Play statistics reports bucket (see below); `public.android_beta_signups`, `public.android_beta_optins` (12 testers for 14 days rule) |
 | App Health | sentry.io: unresolved issues (`/organizations/{org}/issues/`), accepted error events 24h/7d (`/organizations/{org}/stats_v2/`), plus the overview numbers |
 | Feedback & Bugs | Last 30 messages in Discord #bug-reports and #feature-requests; a ✅ reaction marks a message Fixed |
 
@@ -62,6 +62,39 @@ Counted on the account that connected the world, test accounts excluded (same ru
 
 No world titles, emails, user ids or campaign names reach the page.
 
+## Foundry: module installs
+
+The app logs every request for the module's files to `public.foundry_package_hits` (one row per UTC day,
+kind, version and client; `client` is a truncated HMAC of the requester, so distinct clients approximate
+Foundry servers). The tab shows:
+
+- Module downloads in the range: sum of `hits` for kind `download` (new installs and updates), and by version
+- Servers checking (7d): distinct clients with a `manifest` row in the last 7 days (Foundry fetching the
+  latest `module.json` to check for updates)
+- Per week: downloads and distinct servers checking
+
+Until the table exists (it ships with the app deploy that starts counting), the section reads "Install
+tracking starts with the next app deploy". Connor's own test servers count like any other server.
+
+## Android: Play Store installs
+
+Google Play writes daily install statistics as monthly CSV files (UTF-16) to the developer account's
+private Cloud Storage bucket: `gs://pubsite_prod_8955575230808742503/stats/installs/installs_com.d20loottracker.app_YYYYMM_overview.csv`
+(Play Console > Download reports > Statistics > Copy Cloud Storage URI). `lib/playReports.js` reads every
+monthly overview file with a service account key (OAuth 2 JWT, scope `devstorage.read_only`, no SDK) and shows:
+
+- Active devices on the latest reported day (`Active Device Installs`)
+- User installs, device installs and uninstalls (`Daily User Uninstalls`) over the 30 days ending on the
+  latest reported day, with the latest day's value; user installs since the first report
+- A 30-day daily series of installs and of active devices
+
+Play posts each day with a lag of a few days. The service account is
+`d20-play-reports@connor-seo-tool.iam.gserviceaccount.com` (Google Cloud project `connor-seo-tool`, no
+project roles), invited in Play Console > Users and permissions with the account permission "View app
+information and download bulk reports (read-only)", the only level that opens the bulk reports. Its key is
+in the Dossier vault as `d20_play_reports_service_account`. Google can take 24 hours or more after the
+invite before the bucket answers; until then the section reads "Not available yet".
+
 ## Environment variables
 
 All are server-side only. Set them in Vercel (Production and Preview) and in `.env.local` for local runs.
@@ -69,7 +102,9 @@ All are server-side only. Set them in Vercel (Production and Preview) and in `.e
 | Name | Required | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Supabase Postgres connection string. Use the pooler in transaction mode (port 6543). SSL is on with certificate verification off, as the Supabase pooler requires. |
-| `DISCORD_BOT_TOKEN` | for Feedback & Bugs | Bot token of a bot in the D20 Discord server that can read #bug-reports and #feature-requests. Needs the Message Content intent for message text. |
+| `DISCORD_BOT_TOKEN` | for Feedback & Bugs and the Discord server count | Bot token of the "D20 Loot Tracker" app (id 1552490984791744573), which is in the D20 Discord server and can read #bug-reports and #feature-requests. Needs the Message Content intent for message text. A token of another bot is refused for the server count. |
+| `GOOGLE_PLAY_SA_KEY` | for Play Store installs | The service account key file's JSON (or the same JSON base64-encoded). Vault: `d20_play_reports_service_account`. |
+| `PLAY_REPORTS_BUCKET` | no | Play reports bucket. Defaults to `pubsite_prod_8955575230808742503`. |
 | `SENTRY_AUTH_TOKEN` | for App Health errors | sentry.io token with `event:read` (issues) and `org:read` (event stats). A source-map upload token (`org:ci`) is not enough. |
 | `SENTRY_ORG` | no | sentry.io organization slug. Defaults to `d20-loot-tracker`. |
 | `SENTRY_PROJECT` | no | Numeric sentry.io project ID to limit the counts to one project. Defaults to all projects in the org. |
@@ -118,8 +153,11 @@ lib/
   acquisition.js        Signup channels, web sources and the Foundry first-touch rule (pure functions)
   sentry.js             sentry.io API
   discordFeedback.js    Discord channel messages
+  installs.js           Cached Play and Discord install sources
+  playReports.js        Play installs reports: CSV parsing and Cloud Storage reads
+  discordApp.js         Discord server count
   safe.js               Fail-soft wrapper
-test/                   node --test files for lib/acquisition.js
+test/                   node --test files for lib/acquisition.js, the Play reports parser and the fail-soft paths
 supabase/revoke_anon.sql
 supabase_analytics_functions.sql
 ```

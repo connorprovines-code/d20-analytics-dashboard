@@ -19,6 +19,8 @@ import TopList from './TopList';
 import FeedbackList from './FeedbackList';
 import Unavailable from './Unavailable';
 import ChannelChart from './ChannelChart';
+import SeriesBarChart from './SeriesBarChart';
+import DailyLineChart from './DailyLineChart';
 
 const TABS = [
   ['overview', 'Overview'],
@@ -28,7 +30,7 @@ const TABS = [
   ['economy', 'Economy'],
   ['discord', 'Discord Bot'],
   ['foundry', 'Foundry'],
-  ['beta', 'Android Beta'],
+  ['beta', 'Android'],
   ['health', 'App Health'],
   ['feedback', 'Feedback & Bugs'],
 ];
@@ -54,7 +56,7 @@ function chart(data, title, render) {
   return data ? render(data) : <Unavailable title={title} />;
 }
 
-export default function Dashboard({ range, initialTab, core, acquisition, discord, foundry, beta, sentry, feedback, generatedAt }) {
+export default function Dashboard({ range, initialTab, core, acquisition, discord, foundry, beta, sentry, feedback, play, discordApp, generatedAt }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [pending, startTransition] = useTransition();
@@ -94,6 +96,8 @@ export default function Dashboard({ range, initialTab, core, acquisition, discor
   const usage = discord.usage;
   const fw = foundry.worlds;
   const fsign = foundry.signups;
+  const fh = foundry.hits;
+  const pl = play.data;
   const status = beta.status;
   const optins = beta.optins;
 
@@ -299,6 +303,12 @@ export default function Dashboard({ range, initialTab, core, acquisition, discor
           <section>
             <h2 className="section-title">Discord Bot</h2>
             <div className="stats-grid">
+              <StatCard
+                title="Servers with the App"
+                value={discordApp.data ? discordApp.data.servers : null}
+                subtitle="Discord's approximate count"
+                reason={discordApp.reason}
+              />
               <StatCard title="Linked Players" value={discord.linkedPlayers} subtitle="Discord accounts linked" />
               <StatCard title="Servers" value={f(channels, 'servers')} subtitle="Following a campaign" reason={discord.channelsReason} />
               <StatCard title="Channels" value={f(channels, 'channels')} subtitle="Following a campaign" reason={discord.channelsReason} />
@@ -375,12 +385,94 @@ export default function Dashboard({ range, initialTab, core, acquisition, discor
               )}
             </div>
           </section>
+
+          <section>
+            <h2 className="section-title">Module Installs</h2>
+            {foundry.hitsPending ? (
+              <div className="charts-grid">
+                <Unavailable title="Downloads and Update Checks" message="Install tracking starts with the next app deploy" />
+              </div>
+            ) : (
+              <div className="stats-grid">
+                <StatCard title={`Module Downloads (${range}d)`} value={fh ? fh.downloads : null} subtitle="New installs and updates" reason={foundry.hitsReason} />
+                <StatCard title="Servers Checking (7d)" value={fh ? fh.servers_7d : null} subtitle="Foundry servers that checked for updates" reason={foundry.hitsReason} />
+              </div>
+            )}
+          </section>
+
+          {!foundry.hitsPending && (
+            <section>
+              <div className="charts-grid">
+                {fh ? (
+                  <SeriesBarChart
+                    title={`Downloads and Servers Checking per Week (${range}d)`}
+                    data={fh.weekly}
+                    series={[
+                      { key: 'downloads', label: 'Downloads', color: '#e8710a' },
+                      { key: 'servers', label: 'Servers checking', color: '#2a78d6' },
+                    ]}
+                    weekly
+                  />
+                ) : (
+                  <Unavailable title="Downloads and Servers Checking per Week" reason={foundry.hitsReason} />
+                )}
+                {fh ? (
+                  <TopList
+                    title={`Downloads by Version (${range}d)`}
+                    rows={fh.versions.map((v) => ({ label: `v${v.version}`, count: v.count }))}
+                    labelKey="label"
+                    valueKey="count"
+                    empty="No downloads in this range"
+                  />
+                ) : (
+                  <Unavailable title="Downloads by Version" reason={foundry.hitsReason} />
+                )}
+              </div>
+            </section>
+          )}
         </>
       )}
 
       {/* ANDROID BETA TAB */}
       {activeTab === 'beta' && (
         <>
+          <section>
+            <h2 className="section-title">Play Store Installs</h2>
+            {play.pending ? (
+              <div className="charts-grid">
+                <Unavailable
+                  title="Google Play Statistics"
+                  message="Not available yet: Google Play can take 24 hours or more to open its reports to the dashboard"
+                />
+              </div>
+            ) : (
+              <div className="stats-grid">
+                <StatCard title="Active Devices" value={pl ? pl.latest.activeDevices ?? 0 : null} subtitle={pl ? `As of ${pl.latestDate}` : null} reason={play.reason} />
+                <StatCard title="User Installs (30d)" value={pl ? pl.totals.userInstalls : null} subtitle={pl ? `Latest day: ${pl.latest.userInstalls ?? 0}` : null} reason={play.reason} />
+                <StatCard title="Device Installs (30d)" value={pl ? pl.totals.deviceInstalls : null} subtitle={pl ? `Latest day: ${pl.latest.deviceInstalls ?? 0}` : null} reason={play.reason} />
+                <StatCard title="Uninstalls (30d)" value={pl ? pl.totals.userUninstalls : null} subtitle={pl ? `Latest day: ${pl.latest.userUninstalls ?? 0}` : null} reason={play.reason} />
+                <StatCard title="User Installs, All Time" value={pl ? pl.allTimeUserInstalls : null} subtitle={pl ? `Since ${pl.firstDate}` : null} reason={play.reason} />
+              </div>
+            )}
+          </section>
+
+          {pl && (
+            <section>
+              <div className="charts-grid">
+                <SeriesBarChart
+                  title={`Installs per Day (30 days to ${pl.latestDate})`}
+                  data={pl.series}
+                  series={[
+                    { key: 'userInstalls', label: 'User installs', color: '#2a78d6' },
+                    { key: 'deviceInstalls', label: 'Device installs', color: '#1baf7a' },
+                    { key: 'userUninstalls', label: 'Uninstalls', color: '#eb6834' },
+                  ]}
+                />
+                <DailyLineChart title={`Active Devices (30 days to ${pl.latestDate})`} data={pl.series} dataKey="activeDevices" color="#3ddc84" label="Active devices" />
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="section-title">Android Beta Signups</h2>
             <div className="stats-grid">
@@ -468,7 +560,7 @@ export default function Dashboard({ range, initialTab, core, acquisition, discor
       )}
 
       <footer>
-        <p>Loaded {generatedAt} | Discord and Sentry cached for 5 minutes | Test accounts filtered</p>
+        <p>Loaded {generatedAt} | Discord and Sentry cached for 5 minutes, Google Play for 1 hour | Test accounts filtered</p>
       </footer>
     </div>
   );

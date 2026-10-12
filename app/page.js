@@ -1,6 +1,7 @@
 import { getCoreMetrics, getDiscordBotMetrics, getFoundryMetrics, getAndroidBetaMetrics, getAcquisitionMetrics } from '../lib/metrics';
 import { getSentryMetrics } from '../lib/sentry';
 import { getFeedback } from '../lib/discordFeedback';
+import { getPlayInstalls, getDiscordApp } from '../lib/installs';
 import Dashboard from '../components/Dashboard';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export default async function Page({ searchParams }) {
   const range = RANGES.includes(Number(params?.range)) ? Number(params.range) : 30;
   const tab = TABS.includes(params?.tab) ? params.tab : 'overview';
 
-  const [core, acquisition, discord, foundry, beta, sentry, feedback] = await Promise.all([
+  const [core, acquisition, discord, foundry, beta, sentry, feedback, play, discordApp] = await Promise.all([
     getCoreMetrics(range),
     getAcquisitionMetrics(range),
     getDiscordBotMetrics(),
@@ -21,6 +22,8 @@ export default async function Page({ searchParams }) {
     getAndroidBetaMetrics(range),
     getSentryMetrics(),
     getFeedback(),
+    getPlayInstalls(),
+    getDiscordApp(),
   ]);
 
   return (
@@ -34,6 +37,8 @@ export default async function Page({ searchParams }) {
       beta={beta}
       sentry={sentry}
       feedback={feedback}
+      play={play}
+      discordApp={discordApp}
       generatedAt={new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'}
     />
   );
